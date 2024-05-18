@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template creates Appstream 2.0 with Amazon-AppStream2-Sample-Image-03-11-2023 image
+
+
+Parameters:
+  AppStreamImageName:
+    Type: String
+    Default: "Amazon-AppStream2-Sample-Image-03-11-2023"
+
+  SubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select the Subnets where you want to deploy AppStream
+    ConstraintDescription: Must be a valid Subnet ID
+
+  AppStreamStackName:
+    Type: String
+    Description: Enter a name for the AppStream stack
+    MinLength: 1
+    MaxLength: 128
+    AllowedPattern: "[a-zA-Z0-9-]+"
+    ConstraintDescription: Stack name must only contain letters, numbers, and hyphens
+    Default: AppStreamStack
+
+  AppStreamDisplayName:
+    Type: String
+    Description: Enter a name for the AppStream stack
+    MinLength: 1
+    MaxLength: 128
+    AllowedPattern: "[a-zA-Z0-9-]+"
+    ConstraintDescription: Stack name must only contain letters, numbers, and hyphens
+    Default: AppStreamStack
+
+  SecurityGroupIds:
+    Type: 'AWS::EC2::SecurityGroup::Id'
+    Description: Enter the Security Group IDs for your AppStream stack
+
+  InstanceType:
+    Type: String
+    Description: Choose the Instance Type for your AppStream fleet
+    Default: stream.standard.medium
+    AllowedValues:
+      - stream.standard.medium
+      - stream.standard.large
+      - stream.standard.xlarge
+      # Add other allowed Instance Types here
+    ConstraintDescription: Must select a valid Instance Type from the list.
+
+Resources:
+
+  AppStreamFleet:
+    Type: 'AWS::AppStream::Fleet'
+    Properties:
+      ComputeCapacity:
+        DesiredInstances: 5
+      InstanceType: !Ref InstanceType
+      Name: !Ref AppStreamDisplayName
+      DisconnectTimeoutInSeconds: 1200
+      FleetType: ON_DEMAND
+      IdleDisconnectTimeoutInSeconds: 1200
+      ImageName: !Ref AppStreamImageName
+      MaxUserDurationInSeconds: 345600
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupIds
+        SubnetIds: !Ref SubnetId
+
+
+  AppStreamStack:
+    Type: 'AWS::AppStream::Stack'
+    Properties:
+      Description: AppStream stack for test
+      DisplayName: !Ref AppStreamDisplayName
+      Name: !Ref AppStreamDisplayName
+      StorageConnectors:
+        - ConnectorType: HOMEFOLDERS
+      UserSettings:
+        - Action: CLIPBOARD_COPY_FROM_LOCAL_DEVICE
+          Permission: ENABLED
+        - Action: CLIPBOARD_COPY_TO_LOCAL_DEVICE
+          Permission: ENABLED
+        - Action: FILE_DOWNLOAD
+          Permission: ENABLED
+        - Action: PRINTING_TO_LOCAL_DEVICE
+          Permission: ENABLED
+
+  AppStreamFleetAssociation:
+    Type: 'AWS::AppStream::StackFleetAssociation'
+    Properties:
+      FleetName: !Ref AppStreamDisplayName
+      StackName: !Ref AppStreamDisplayName
+    DependsOn:
+      - AppStreamFleet
+      - AppStreamStack
